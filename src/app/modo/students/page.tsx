@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Header } from "~/components/header"
+import { Header_Students } from "~/components/header_students"
 import { PersonalTab } from "~/components/personal-tab"
 import { GroupProjectsTab } from "~/components/group-projects-tab"
 import { PersonalScheduleTab } from "~/components/personal-schedule-tab"
@@ -11,7 +11,7 @@ export default function StudentPlanner() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header_Students />
 
       {/* Navigation Tabs */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
