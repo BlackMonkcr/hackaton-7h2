@@ -37,10 +37,7 @@
     "@trpc/react-query": "^11.0.0",
     "@trpc/server": "^11.0.0",
     "bcryptjs": "^3.0.2",
-<<<<<<< HEAD
-=======
     "class-variance-authority": "^0.7.1",
->>>>>>> 9f797d7e484690727cf8ab93d452c29804fdbd7e
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "google-auth-library": "^10.1.0",
