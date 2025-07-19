@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "./ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
+import { Input } from "./ui/input"
+import { Badge } from "./ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
 import {
   Dialog,
   DialogContent,
@@ -15,9 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+} from "./ui/dialog"
+import { Label } from "./ui/label"
+import { Textarea } from "./ui/textarea"
 import { Plus, Upload, Filter, Search, Calendar, Clock, User, AlertTriangle, CheckCircle, Circle } from "lucide-react"
 
 const sampleTasks = [
@@ -117,7 +117,7 @@ export function TaskManagement() {
     }
   }
 
-  const getPriorityColor = (priority) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "Crítica":
         return "bg-red-100 text-red-800"
@@ -132,7 +132,7 @@ export function TaskManagement() {
     }
   }
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case "Completada":
         return <CheckCircle className="h-4 w-4 text-green-600" />
