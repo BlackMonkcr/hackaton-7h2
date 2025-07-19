@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { api } from "~/trpc/react";
 
-export function AaronTest() {
+export function GianpierTest() {
   const [latestPost] = api.post.getLatest.useSuspenseQuery();
 
   const utils = api.useUtils();
@@ -18,4 +18,4 @@ export function AaronTest() {
   return <div className="w-full max-w-xs">Hola</div>;
 }
 
-export default AaronTest;
+export default GianpierTest;
