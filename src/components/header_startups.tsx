@@ -27,7 +27,7 @@ interface HeaderProps {
   setShowMetrics: (show: boolean) => void
 }
 
-export function Header({ activeTab, setActiveTab, showAI, setShowAI, showMetrics, setShowMetrics }: HeaderProps) {
+export function Header_startups({ activeTab, setActiveTab, showAI, setShowAI, showMetrics, setShowMetrics }: HeaderProps) {
   const tabs = [
     { id: "personal" as TabType, label: "Tareas personales", icon: CheckSquare },
     { id: "projects" as TabType, label: "Proyectos colaborativos", icon: Users },

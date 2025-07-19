@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Header } from "~/components/header_startups"
+import { Header_startups } from "~/components/header_startups"
 import { PersonalTasks } from "~/components/personal-tasks"
 import { CollaborativeProjects } from "~/components/collaborative-projects"
 import { GeneralBacklog } from "~/components/general-backlog"
@@ -13,7 +13,7 @@ import { MetricsPanel } from "~/components/metrics-panel"
 export type TabType = "personal" | "projects" | "backlog" | "sprint" | "schedule"
 
 export default function PlannerApp() {
-  const [activeTab, setActiveTab] = useState("personal")
+  const [activeTab, setActiveTab] = useState<TabType>("personal")
   const [showAI, setShowAI] = useState(false)
   const [showMetrics, setShowMetrics] = useState(false)
 
@@ -36,7 +36,7 @@ export default function PlannerApp() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header
+      <Header_startups
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         showAI={showAI}
@@ -52,4 +52,4 @@ export default function PlannerApp() {
       {showMetrics && <MetricsPanel onClose={() => setShowMetrics(false)} />}
     </div>
   )
-}<TabType>
+}
