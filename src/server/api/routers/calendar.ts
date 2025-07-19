@@ -494,4 +494,143 @@ export const calendarRouter = createTRPCRouter({
         tokenExpiry: dbUser?.googleTokenExpiry,
       };
     }),
+
+  // Extract all calendars with events in JSON format
+  extractCalendarsWithEvents: publicProcedure
+    .input(
+      z.object({
+        token: z.string(),
+        timeMin: z.string().optional(),
+        timeMax: z.string().optional(),
+        maxResults: z.number().optional().default(100),
+        includeSecondary: z.boolean().optional().default(true),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      const user = await validateAuthToken(input.token);
+
+      try {
+        const oauth2Client = await setupOAuth2ClientWithUserTokens(user.id, ctx);
+        const calendar = getCalendarClient(oauth2Client);
+
+        // Get all calendars
+        const calendarsResponse = await calendar.calendarList.list();
+        const calendars = calendarsResponse.data.items || [];
+
+        const calendarData = [];
+
+        for (const cal of calendars) {
+          if (!cal.id) continue;
+
+          // Skip secondary calendars if not requested
+          if (!input.includeSecondary && cal.accessRole !== 'owner') {
+            continue;
+          }
+
+          try {
+            // Get events for this calendar
+            const eventsResponse = await calendar.events.list({
+              calendarId: cal.id,
+              timeMin: input.timeMin || new Date().toISOString(),
+              timeMax: input.timeMax,
+              maxResults: input.maxResults,
+              singleEvents: true,
+              orderBy: 'startTime',
+            });
+
+            const events = (eventsResponse.data.items || []).map(event => ({
+              id: event.id,
+              summary: event.summary || 'Sin título',
+              description: event.description || '',
+              location: event.location || '',
+              start: {
+                dateTime: event.start?.dateTime,
+                date: event.start?.date,
+                timeZone: event.start?.timeZone,
+              },
+              end: {
+                dateTime: event.end?.dateTime,
+                date: event.end?.date,
+                timeZone: event.end?.timeZone,
+              },
+              created: event.created,
+              updated: event.updated,
+              status: event.status,
+              creator: {
+                email: event.creator?.email,
+                displayName: event.creator?.displayName,
+              },
+              organizer: {
+                email: event.organizer?.email,
+                displayName: event.organizer?.displayName,
+              },
+              attendees: event.attendees?.map(attendee => ({
+                email: attendee.email,
+                displayName: attendee.displayName,
+                responseStatus: attendee.responseStatus,
+              })) || [],
+              recurrence: event.recurrence || [],
+              reminders: {
+                useDefault: event.reminders?.useDefault || false,
+                overrides: event.reminders?.overrides || [],
+              },
+              visibility: event.visibility,
+              transparency: event.transparency,
+            }));
+
+            calendarData.push({
+              calendar: {
+                id: cal.id,
+                summary: cal.summary || 'Sin nombre',
+                description: cal.description || '',
+                primary: cal.primary || false,
+                accessRole: cal.accessRole,
+                timeZone: cal.timeZone,
+                backgroundColor: cal.backgroundColor,
+                foregroundColor: cal.foregroundColor,
+                selected: cal.selected,
+              },
+              events: events,
+              eventCount: events.length,
+            });
+          } catch (eventError) {
+            console.error(`Error getting events for calendar ${cal.id}:`, eventError);
+            // Continue with other calendars even if one fails
+            calendarData.push({
+              calendar: {
+                id: cal.id,
+                summary: cal.summary || 'Sin nombre',
+                description: cal.description || '',
+                primary: cal.primary || false,
+                accessRole: cal.accessRole,
+                timeZone: cal.timeZone,
+                backgroundColor: cal.backgroundColor,
+                foregroundColor: cal.foregroundColor,
+                selected: cal.selected,
+              },
+              events: [],
+              eventCount: 0,
+              error: 'No se pudieron obtener los eventos para este calendario',
+            });
+          }
+        }
+
+        return {
+          success: true,
+          totalCalendars: calendarData.length,
+          extractedAt: new Date().toISOString(),
+          timeRange: {
+            min: input.timeMin || new Date().toISOString(),
+            max: input.timeMax || null,
+          },
+          calendars: calendarData,
+        };
+      } catch (error) {
+        console.error("Error extracting calendars with events:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error al extraer calendarios: ${error instanceof Error ? error.message : "Error desconocido"}`,
+        });
+      }
+    }),
 });
