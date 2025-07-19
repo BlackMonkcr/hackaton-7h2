@@ -540,9 +540,6 @@ export const calendarRouter = createTRPCRouter({
 
             const events = (eventsResponse.data.items || []).map(event => ({
               id: event.id,
-              summary: event.summary || 'Sin título',
-              description: event.description || '',
-              location: event.location || '',
               start: {
                 dateTime: event.start?.dateTime,
                 date: event.start?.date,
@@ -553,29 +550,6 @@ export const calendarRouter = createTRPCRouter({
                 date: event.end?.date,
                 timeZone: event.end?.timeZone,
               },
-              created: event.created,
-              updated: event.updated,
-              status: event.status,
-              creator: {
-                email: event.creator?.email,
-                displayName: event.creator?.displayName,
-              },
-              organizer: {
-                email: event.organizer?.email,
-                displayName: event.organizer?.displayName,
-              },
-              attendees: event.attendees?.map(attendee => ({
-                email: attendee.email,
-                displayName: attendee.displayName,
-                responseStatus: attendee.responseStatus,
-              })) || [],
-              recurrence: event.recurrence || [],
-              reminders: {
-                useDefault: event.reminders?.useDefault || false,
-                overrides: event.reminders?.overrides || [],
-              },
-              visibility: event.visibility,
-              transparency: event.transparency,
             }));
 
             calendarData.push({
@@ -630,6 +604,75 @@ export const calendarRouter = createTRPCRouter({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Error al extraer calendarios: ${error instanceof Error ? error.message : "Error desconocido"}`,
+        });
+      }
+    }),
+
+  // Extract events from a specific calendar in JSON format
+  extractCalendarEvents: publicProcedure
+    .input(
+      z.object({
+        token: z.string(),
+        calendarId: z.string(),
+        timeMin: z.string().optional(),
+        timeMax: z.string().optional(),
+        maxResults: z.number().optional().default(100),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      const user = await validateAuthToken(input.token);
+
+      try {
+        const oauth2Client = await setupOAuth2ClientWithUserTokens(user.id, ctx);
+        const calendar = getCalendarClient(oauth2Client);
+
+        // Get calendar info
+        const calendarResponse = await calendar.calendars.get({
+          calendarId: input.calendarId,
+        });
+
+        // Get events for this specific calendar
+        const eventsResponse = await calendar.events.list({
+          calendarId: input.calendarId,
+          timeMin: input.timeMin || new Date().toISOString(),
+          timeMax: input.timeMax,
+          maxResults: input.maxResults,
+          singleEvents: true,
+          orderBy: 'startTime',
+        });
+
+        const events = (eventsResponse.data.items || []).map(event => ({
+          id: event.id,
+          start: {
+            dateTime: event.start?.dateTime,
+            date: event.start?.date,
+            timeZone: event.start?.timeZone,
+          },
+          end: {
+            dateTime: event.end?.dateTime,
+            date: event.end?.date,
+            timeZone: event.end?.timeZone,
+          },
+        }));
+
+        return {
+          success: true,
+          calendar: {
+            id: calendarResponse.data.id,
+            summary: calendarResponse.data.summary || 'Sin nombre',
+            description: calendarResponse.data.description || '',
+            timeZone: calendarResponse.data.timeZone,
+          },
+          events: events,
+          eventCount: events.length,
+          extractedAt: new Date().toISOString(),
+        };
+
+      } catch (error) {
+        console.error("Error extracting calendar events:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Error extrayendo eventos: ${error instanceof Error ? error.message : "Error desconocido"}`,
         });
       }
     }),
