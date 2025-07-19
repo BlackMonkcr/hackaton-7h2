@@ -4,6 +4,8 @@ import { useState } from "react";
 import AaronTest from "./aaron";
 import GianpierTest from "./gianpier";
 import CalendarTest from "./calendar";
+import ProjectAITest from "./project-ai";
+import CalendarExtractorTest from "./calendar-extractor";
 
 export default function TestingPage() {
   const [activeTab, setActiveTab] = useState("aaron");
@@ -37,6 +39,26 @@ export default function TestingPage() {
               Calendar - Google
             </button>
             <button
+              onClick={() => setActiveTab("calendar-extractor")}
+              className={`px-6 py-2 rounded-md transition-colors ${
+                activeTab === "calendar-extractor"
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Calendar - Extractor
+            </button>
+            <button
+              onClick={() => setActiveTab("project-ai")}
+              className={`px-6 py-2 rounded-md transition-colors ${
+                activeTab === "project-ai"
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Project AI - Tests
+            </button>
+            <button
               onClick={() => setActiveTab("gianpier")}
               className={`px-6 py-2 rounded-md transition-colors ${
                 activeTab === "gianpier"
@@ -53,6 +75,8 @@ export default function TestingPage() {
         <div className="flex justify-center">
           {activeTab === "aaron" && <AaronTest />}
           {activeTab === "calendar" && <CalendarTest />}
+          {activeTab === "calendar-extractor" && <CalendarExtractorTest />}
+          {activeTab === "project-ai" && <ProjectAITest />}
           {activeTab === "gianpier" && <GianpierTest />}
         </div>
       </div>
