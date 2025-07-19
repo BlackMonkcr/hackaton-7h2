@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "./ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import { Input } from "./ui/input"
+import { Badge } from "./ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -13,9 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from "./ui/dialog"
+import { Label } from "./ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import {
   Plus,
   Edit,
@@ -50,12 +50,14 @@ export function CompanySections() {
   const [newSectionName, setNewSectionName] = useState("")
   const [editingSection, setEditingSection] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [SectionID, setSectionID] = useState(false)
 
   const addSection = () => {
     if (newSectionName.trim()) {
       const newSection = {
         id: Date.now(),
-        name: newSectionName,
+        
+        name:   newSectionName,
         icon: Building,
         color: "bg-gray-100 text-gray-700",
         tasks: 0,
@@ -67,20 +69,25 @@ export function CompanySections() {
     }
   }
 
-  const deleteSection = (id) => {
+  
+
+  const deleteSection = (id: any) => {
     setSections(sections.filter((section) => section.id !== id))
   }
 
-  const editSection = (section) => {
+  const editSection = (section: any) => {
     setEditingSection(section)
     setNewSectionName(section.name)
     setIsDialogOpen(true)
+    setSectionID(section.id)
   }
 
   const updateSection = () => {
     if (editingSection && newSectionName.trim()) {
+      //editSection.id 
+      
       setSections(
-        sections.map((section) => (section.id === editingSection.id ? { ...section, name: newSectionName } : section)),
+        sections.map((section) => (section.id ? { ...section, name: newSectionName } : section)),
       )
       setEditingSection(null)
       setNewSectionName("")
