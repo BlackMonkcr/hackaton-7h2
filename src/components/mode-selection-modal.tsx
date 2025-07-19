@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "./ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 
+import { useRouter } from "next/navigation"
+
 interface ModeSelectionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -41,8 +43,11 @@ const modes = [
 ]
 
 export function ModeSelectionModal({ open, onOpenChange }: ModeSelectionModalProps) {
+  const router = useRouter();
+
   const handleModeSelect = (modeId: string) => {
     console.log(`Selected mode: ${modeId}`)
+    router.push(`/modo/${modeId}`)
     // Aquí puedes agregar la lógica para redirigir o configurar el modo
     onOpenChange(false)
   }

@@ -34,15 +34,12 @@
     "@trpc/client": "^11.0.0",
     "@trpc/react-query": "^11.0.0",
     "@trpc/server": "^11.0.0",
-<<<<<<< HEAD
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.525.0",
-=======
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
->>>>>>> 4556cc647fa8eb4307ad57ea512a595bc44860d8
     "next": "^15.2.3",
     "react": "^19.0.0",
     "react-day-picker": "^9.8.0",
