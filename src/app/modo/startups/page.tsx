@@ -45,7 +45,7 @@ export default function PlannerApp() {
         setShowMetrics={setShowMetrics}
       />
 
-      <main className="pt-16">{renderActiveTab()}</main>
+      <main className="pt-30">{renderActiveTab()}</main>
 
       {showAI && <AIStrategist onClose={() => setShowAI(false)} />}
 
