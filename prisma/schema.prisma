@@ -130,6 +130,11 @@ model User {
     timezone      String    @default("UTC")
     language      String    @default("es")
 
+    // Google Calendar Integration
+    googleAccessToken  String?
+    googleRefreshToken String?
+    googleTokenExpiry  DateTime?
+
     // Timestamps
     createdAt     DateTime  @default(now())
     updatedAt     DateTime  @updatedAt
