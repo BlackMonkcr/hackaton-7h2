@@ -10,6 +10,583 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
+// Enums
+enum ProjectType {
+    UNIVERSITY
+    STARTUP
+    SME
+    ENTERPRISE
+}
+
+enum ProjectCategory {
+    ACADEMIC_PROJECT     // Proyecto académico
+    THESIS              // Tesis/investigación
+    STARTUP_MVP         // MVP de startup
+    STARTUP_PRODUCT     // Producto de startup
+    BUSINESS_PLAN       // Plan de negocio
+    RESEARCH            // Investigación
+    COURSEWORK          // Trabajo de curso
+    GROUP_ASSIGNMENT    // Asignación grupal
+    PERSONAL_PROJECT    // Proyecto personal
+    OTHER
+}
+
+enum TaskStatus {
+    PENDING
+    IN_PROGRESS
+    COMPLETED
+    BLOCKED
+}
+
+enum TaskPriority {
+    LOW
+    MEDIUM
+    HIGH
+    URGENT
+}
+
+enum ProjectRole {
+    OWNER
+    COORDINATOR
+    MEMBER
+    VIEWER
+}
+
+enum SprintStatus {
+    PLANNING
+    ACTIVE
+    COMPLETED
+    CANCELLED
+}
+
+enum NotificationStatus {
+    UNREAD
+    READ
+    DISMISSED
+}
+
+enum AIProvider {
+    OPENAI_GPT
+    CLAUDE
+    DEEPSEEK
+    GEMINI
+}
+
+enum WorkflowType {
+    SIMPLE_DEADLINES
+    KANBAN
+    SPRINTS
+    GANTT
+    CUSTOM
+}
+
+enum TaskType {
+    PERSONAL
+    PROJECT
+    MILESTONE
+    RECURRING
+}
+
+enum ProjectPriority {
+    LOW
+    MEDIUM
+    HIGH
+    URGENT
+}
+
+enum ProjectStage {
+    PLANNING
+    CONFIGURATION
+    AI_GENERATION
+    IN_PROGRESS
+    REVIEW
+    COMPLETED
+    PAUSED
+}
+
+// Core Models
+model User {
+    id            String    @id @default(cuid())
+    email         String    @unique
+    username      String?   @unique
+    password      String
+    firstName     String
+    lastName      String
+    profileImage  String?
+
+    // University specific
+    university    String?
+    studentId     String?
+    career        String?
+    semester      Int?
+
+    // Startup/Company specific
+    companyName   String?
+    position      String?
+    industry      String?
+    companySize   Int?
+
+    // Settings
+    timezone      String    @default("UTC")
+    language      String    @default("es")
+
+    // Timestamps
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
+    lastLoginAt   DateTime?
+    emailVerifiedAt DateTime?
+
+    // Relations
+    sessions              UserSession[]
+    ownedProjects         Project[]     @relation("ProjectOwner")
+    projectMembers        ProjectMember[]
+    personalTasks         Task[]        @relation("TaskAssignee")
+    createdTasks          Task[]        @relation("TaskCreator")
+    scheduleBlocks        ScheduleBlock[]
+    notifications         Notification[]
+    aiInteractions        AIInteraction[]
+    workSessions          WorkSession[]
+    preferences           UserPreferences?
+    createdTemplates      Template[]
+    uploadedResources     Resource[]
+    comments              Comment[]
+    createdAITemplates    AIPromptTemplate[] @relation("AITemplateCreator")
+
+    @@map("users")
+}
+
+model UserSession {
+    id        String   @id @default(cuid())
+    userId    String
+    token     String   @unique
+    expiresAt DateTime
+    createdAt DateTime @default(now())
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("user_sessions")
+}
+
+model Project {
+    id          String      @id @default(cuid())
+    name        String
+    description String?
+    projectType ProjectType @default(UNIVERSITY)
+    category    ProjectCategory @default(ACADEMIC_PROJECT)
+    projectStage ProjectStage @default(PLANNING)
+
+    // Dates
+    startDate   DateTime?
+    endDate     DateTime?
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+
+    // Owner
+    ownerId     String
+    owner       User        @relation("ProjectOwner", fields: [ownerId], references: [id])
+
+    // Project settings
+    isPublic    Boolean     @default(false)
+    joinCode    String?     @unique
+
+    // AI Settings
+    aiEnabled   Boolean     @default(true)
+    aiProvider  AIProvider  @default(OPENAI_GPT)
+
+    // Workflow Settings - Flexible project management
+    workflowType    WorkflowType @default(SIMPLE_DEADLINES)
+    usesSprints     Boolean      @default(false)
+    usesKanban      Boolean      @default(true)
+    allowsSubtasks  Boolean      @default(true)
+
+    // Project metadata
+    color          String?      // Hex color for UI
+    tags           String[]     @default([])
+
+    // University specific fields
+    courseCode     String?      // Código del curso
+    courseName     String?      // Nombre del curso
+    professor      String?      // Profesor
+    semester       String?      // Semestre académico
+    academicYear   String?      // Año académico
+    university     String?      // Universidad
+
+    // Startup specific fields
+    industry       String?      // Industria/sector
+    startupStage   String?      // Pre-seed, seed, series A, etc.
+    teamSize       Int?         // Tamaño del equipo
+    fundingGoal    Float?       // Meta de financiamiento
+    businessModel  String?      // Modelo de negocio
+
+    // Relations
+    members     ProjectMember[]
+    tasks       Task[]
+    sprints     Sprint[]
+    milestones  Milestone[]
+    kanbanColumns KanbanColumn[]
+    workSessions  WorkSession[]
+    resources   Resource[]
+    comments    Comment[]
+    configuration ProjectConfiguration?
+    analytics   ProjectAnalytics?
+
+    @@map("projects")
+}
+
+model ProjectMember {
+    id        String      @id @default(cuid())
+    projectId String
+    userId    String
+    role      ProjectRole @default(MEMBER)
+    joinedAt  DateTime    @default(now())
+
+    project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([projectId, userId])
+    @@map("project_members")
+}
+
+model Task {
+    id          String       @id @default(cuid())
+    title       String
+    description String?
+    status      TaskStatus   @default(PENDING)
+    priority    TaskPriority @default(MEDIUM)
+    taskType    TaskType     @default(PERSONAL)
+
+    // Time estimates (in minutes)
+    estimatedDuration Int?
+    actualDuration    Int?
+
+    // Dates - Flexible for different workflows
+    dueDate     DateTime?
+    startDate   DateTime?
+    completedAt DateTime?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    // Kanban position (for boards)
+    columnId    String?   // "todo", "in_progress", "review", "done", etc.
+    position    Int?      // Order within column
+
+    // Tags and labels
+    tags        String[]  @default([])
+    labels      String[]  @default([])
+
+    // Context specific fields
+    difficulty  Int?      @default(1) // 1-5 scale
+    complexity  String?   // "simple", "medium", "complex"
+    skillsRequired String[] @default([]) // Skills needed for this task
+
+    // University specific
+    deliverableType String? // "report", "presentation", "code", "design", etc.
+    rubricCriteria  Json?   // JSON with evaluation criteria
+
+    // Startup specific
+    impactLevel     String? // "low", "medium", "high"
+    customerValue   String? // Description of customer value
+    riskLevel       String? // "low", "medium", "high"
+
+    // Relations
+    projectId   String?
+    project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    assigneeId  String?
+    assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+    createdById String
+    createdBy   User      @relation("TaskCreator", fields: [createdById], references: [id])
+
+    // Sprint relation (optional for projects using sprints)
+    sprintId    String?
+    sprint      Sprint?   @relation(fields: [sprintId], references: [id])
+
+    // Milestone relation (for projects using milestones)
+    milestoneId String?
+    milestone   Milestone? @relation(fields: [milestoneId], references: [id])
+
+    // Task dependencies
+    parentTaskId String?
+    parentTask   Task?   @relation("TaskDependencies", fields: [parentTaskId], references: [id])
+    subtasks     Task[]  @relation("TaskDependencies")
+
+    // Dependencies
+    blockedByTasks Task[] @relation("TaskBlockers")
+    blockingTasks  Task[] @relation("TaskBlockers")
+
+    // Schedule blocks
+    scheduleBlocks ScheduleBlock[]
+    workSessions   WorkSession[]
+    resources      Resource[]
+    comments       Comment[]
+
+    @@map("tasks")
+}
+
+model Sprint {
+    id        String        @id @default(cuid())
+    name      String
+    goal      String?
+    status    SprintStatus  @default(PLANNING)
+
+    // Dates
+    startDate DateTime
+    endDate   DateTime
+    createdAt DateTime      @default(now())
+    updatedAt DateTime      @updatedAt
+
+    // Relations
+    projectId String
+    project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    tasks     Task[]
+
+    @@map("sprints")
+}
+
+model ScheduleBlock {
+    id          String    @id @default(cuid())
+    title       String
+    description String?
+
+    // Time
+    startTime   DateTime
+    endTime     DateTime
+
+    // Recurrence
+    isRecurring Boolean   @default(false)
+    recurrencePattern String? // JSON string for recurrence rules
+
+    // Type of block
+    blockType   String    // "class", "work", "meeting", "personal", "task"
+
+    // Relations
+    userId      String
+    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    taskId      String?
+    task        Task?     @relation(fields: [taskId], references: [id])
+
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    @@map("schedule_blocks")
+}
+
+model Notification {
+    id        String             @id @default(cuid())
+    title     String
+    message   String
+    type      String             // "task_due", "project_update", "sprint_start", etc.
+    status    NotificationStatus @default(UNREAD)
+
+    // Dates
+    scheduledFor DateTime?
+    createdAt    DateTime @default(now())
+    readAt       DateTime?
+
+    // Relations
+    userId    String
+    user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    // Optional relations
+    taskId    String?
+    projectId String?
+
+    @@map("notifications")
+}
+
+model AIInteraction {
+    id         String     @id @default(cuid())
+    userId     String
+    provider   AIProvider
+
+    // Interaction data
+    prompt     String
+    response   String
+    tokens     Int?
+    cost       Float?
+
+    // Context
+    context    String?    // "task_planning", "schedule_optimization", "project_generation", etc.
+    projectId  String?
+    
+    // Configuración específica para generación de tareas
+    configurationUsed Json? // Snapshot de la configuración usada para generar
+    generationType String? // "initial", "regeneration", "partial_update"
+    success    Boolean    @default(true)
+    errorMessage String?
+
+    createdAt  DateTime   @default(now())
+
+    user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("ai_interactions")
+}
+
+model Milestone {
+    id          String    @id @default(cuid())
+    title       String
+    description String?
+    dueDate     DateTime
+    isCompleted Boolean   @default(false)
+    completedAt DateTime?
+
+    // Relations
+    projectId   String
+    project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    tasks       Task[]
+
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    @@map("milestones")
+}
+
+model KanbanColumn {
+    id          String @id @default(cuid())
+    name        String
+    position    Int
+    color       String?
+    isCompleted Boolean @default(false) // True for "Done" columns
+
+    // Relations
+    projectId   String
+    project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@unique([projectId, position])
+    @@map("kanban_columns")
+}
+
+model WorkSession {
+    id           String    @id @default(cuid())
+    startTime    DateTime
+    endTime      DateTime?
+    duration     Int?      // in minutes
+    description  String?
+
+    // Relations
+    userId       String
+    user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    taskId       String?
+    task         Task?     @relation(fields: [taskId], references: [id])
+
+    projectId    String?
+    project      Project?  @relation(fields: [projectId], references: [id])
+
+    createdAt    DateTime  @default(now())
+
+    @@map("work_sessions")
+}
+
+model UserPreferences {
+    id              String      @id @default(cuid())
+    userId          String      @unique
+
+    // Planning preferences
+    defaultWorkflowType WorkflowType @default(SIMPLE_DEADLINES)
+    preferredWorkHours  Json?        // {"start": "09:00", "end": "17:00", "days": [1,2,3,4,5]}
+    timeBlockSize       Int         @default(30) // minutes
+
+    // AI preferences
+    autoScheduling      Boolean     @default(true)
+    aiSuggestions       Boolean     @default(true)
+    preferredAI         AIProvider  @default(OPENAI_GPT)
+
+    // Notification preferences
+    emailNotifications  Boolean     @default(true)
+    pushNotifications   Boolean     @default(true)
+    reminderMinutes     Int         @default(15)
+
+    // UI preferences
+    theme               String      @default("light")
+    language            String      @default("es")
+    dateFormat          String      @default("DD/MM/YYYY")
+
+    user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt           DateTime    @default(now())
+    updatedAt           DateTime    @updatedAt
+
+    @@map("user_preferences")
+}
+
+model Template {
+    id          String      @id @default(cuid())
+    name        String
+    description String?
+    projectType ProjectType
+    isPublic    Boolean     @default(false)
+
+    // Template structure as JSON
+    structure   Json        // Contains default tasks, milestones, etc.
+
+    // Relations
+    createdById String
+    createdBy   User        @relation(fields: [createdById], references: [id])
+
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+
+    @@map("templates")
+}
+
+model Resource {
+    id          String   @id @default(cuid())
+    name        String
+    description String?
+    url         String?  // URL if it's a link
+    filePath    String?  // File path if it's an uploaded file
+    fileSize    Int?     // Size in bytes
+    mimeType    String?  // MIME type
+    resourceType String  // "file", "link", "reference", "tool"
+
+    // Relations
+    projectId   String?
+    project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    taskId      String?
+    task        Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+    uploadedById String
+    uploadedBy   User    @relation(fields: [uploadedById], references: [id])
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@map("resources")
+}
+
+model Comment {
+    id        String   @id @default(cuid())
+    content   String
+    
+    // Relations
+    taskId    String?
+    task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+    
+    projectId String?
+    project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    
+    authorId  String
+    author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    
+    // Threading support
+    parentId  String?
+    parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+    replies   Comment[] @relation("CommentReplies")
+    
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("comments")
+}
+
+// Legacy model (mantener por compatibilidad)
 model Post {
     id        Int      @id @default(autoincrement())
     name      String
@@ -17,4 +594,113 @@ model Post {
     updatedAt DateTime @updatedAt
 
     @@index([name])
+}
+
+model ProjectConfiguration {
+    id                  String   @id @default(cuid())
+    projectId          String   @unique
+    
+    // Información base para la IA
+    projectTitle       String   // ${TITULO_PROYECTO}
+    projectDescription String   // ${DESCRIPCION_PROYECTO}
+    requiredWeeks      Int      // ${SEMANAS_REQUERIDAS}
+    availablePersonnel Json     // ${PERSONAL_DISPONIBLE} - Array de objetos con roles y disponibilidad
+    workSector         String   // ${RUBRO_LABORAL}
+    tasksToResolve     String   // ${TAREAS_RESOLVER} - Descripción detallada
+    tasksPriority      String   // ${PRIORIDAD_TAREAS} - Lista priorizada
+    availableBudget    Float?   // ${PRESUPUESTO}
+    specialRestrictions String? // ${RESTRICCIONES}
+    
+    // Fechas del proyecto
+    projectStartDate   DateTime // Día inicio del proyecto
+    projectEndDate     DateTime // Día fin del proyecto
+    
+    // Configuración adicional para la IA
+    aiPromptTemplate   String?  // Template personalizado para la IA
+    generatedTasks     Json?    // Respuesta de la IA con tareas generadas
+    lastAIGeneration   DateTime? // Última vez que se generaron tareas
+    
+    // Estado de configuración
+    isComplete         Boolean  @default(false)
+    needsRegeneration  Boolean  @default(false)
+    
+    // Relación
+    project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    
+    createdAt         DateTime @default(now())
+    updatedAt         DateTime @updatedAt
+    
+    @@map("project_configurations")
+}
+
+model AIPromptTemplate {
+    id              String      @id @default(cuid())
+    name            String
+    description     String?
+    projectType     ProjectType
+    category        ProjectCategory?
+    
+    // Template del prompt con variables
+    promptTemplate  String      // Template con placeholders como ${TITULO_PROYECTO}
+    
+    // Configuración del prompt
+    temperature     Float?      @default(0.7)
+    maxTokens       Int?        @default(4000)
+    
+    // Validación y uso
+    isActive        Boolean     @default(true)
+    usageCount      Int         @default(0)
+    avgRating       Float?      // Rating promedio de usuarios
+    
+    // Metadatos
+    version         String      @default("1.0")
+    tags            String[]    @default([])
+    
+    // Relaciones
+    createdById     String
+    createdBy       User        @relation("AITemplateCreator", fields: [createdById], references: [id])
+    
+    createdAt       DateTime    @default(now())
+    updatedAt       DateTime    @updatedAt
+    
+    @@map("ai_prompt_templates")
+}
+
+model ProjectAnalytics {
+    id                    String   @id @default(cuid())
+    projectId            String   @unique
+    
+    // Métricas de planificación
+    totalTasks           Int      @default(0)
+    completedTasks       Int      @default(0)
+    overdueTasks         Int      @default(0)
+    avgTaskDuration      Float?   // Duración promedio en horas
+    
+    // Métricas temporales
+    originalDeadline     DateTime?
+    currentEstimatedEnd  DateTime?
+    actualStartDate      DateTime?
+    actualEndDate        DateTime?
+    
+    // Métricas de equipo
+    teamUtilization      Float?   // % de utilización del equipo
+    taskDistribution     Json?    // Distribución de tareas por miembro
+    
+    // Métricas de IA
+    aiGenerationAccuracy Float?   // Qué tan precisa fue la estimación inicial
+    aiSuggestionsUsed    Int      @default(0)
+    aiCostTotal          Float?   // Costo total en uso de IA
+    
+    // Análisis predictivo
+    riskLevel            String?  // "low", "medium", "high"
+    completionProbability Float?  // % probabilidad de completar a tiempo
+    recommendedActions   Json?    // Acciones recomendadas por IA
+    
+    // Relación
+    project              Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    
+    lastUpdated          DateTime @default(now())
+    createdAt            DateTime @default(now())
+    
+    @@map("project_analytics")
 }
