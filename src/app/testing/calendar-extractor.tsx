@@ -172,7 +172,7 @@ export function CalendarExtractorTest() {
     const dataStr = JSON.stringify(dataToDownload, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
 
-    const fileName = specificCalendarData 
+    const fileName = specificCalendarData
       ? `calendar-${specificCalendarData.calendar.summary}-events-${new Date().toISOString().split('T')[0]}.json`
       : `all-calendars-export-${new Date().toISOString().split('T')[0]}.json`;
 
@@ -222,7 +222,7 @@ export function CalendarExtractorTest() {
     "timeZone": "America/Lima"
   },
   "end": {
-    "dateTime": "2025-07-19T11:00:00-05:00", 
+    "dateTime": "2025-07-19T11:00:00-05:00",
     "timeZone": "America/Lima"
   }
 }`}</pre>
@@ -259,7 +259,7 @@ export function CalendarExtractorTest() {
       {/* Parámetros de extracción */}
       <div className="border p-4 rounded-lg">
         <h2 className="text-xl font-semibold mb-4">⚙️ Configuración de Extracción</h2>
-        
+
         {/* Modo de extracción */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <h3 className="text-lg font-medium mb-3">📂 Modo de Extracción</h3>
@@ -376,8 +376,8 @@ export function CalendarExtractorTest() {
           disabled={(extractQuery.isFetching || extractSpecificQuery.isFetching) || !token || !isGoogleConnected}
           className="bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-lg font-semibold"
         >
-          {(extractQuery.isFetching || extractSpecificQuery.isFetching) ? "Extrayendo..." : 
-           extractMode === "all" ? "🔄 Extraer Todos los Calendarios" : 
+          {(extractQuery.isFetching || extractSpecificQuery.isFetching) ? "Extrayendo..." :
+           extractMode === "all" ? "🔄 Extraer Todos los Calendarios" :
            "🔄 Extraer Calendario Seleccionado"}
         </button>
       </div>
