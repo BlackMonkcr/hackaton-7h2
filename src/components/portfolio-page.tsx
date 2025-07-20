@@ -98,8 +98,35 @@ const projectsData = [
   },
 ]
 
-function ProjectCard({ project, onView, onEdit, onDelete }) {
-  const getStatusColor = (status) => {
+type Project = {
+  id: number
+  name: string
+  description: string
+  department: string
+  manager: string
+  startDate: string
+  endDate: string
+  progress: number
+  status: string
+  priority: string
+  budget: number
+  spent: number
+  team: string[]
+  kpis: { name: string; current: number; target: number; unit: string }[]
+}
+
+function ProjectCard({
+  project,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  project: Project
+  onView: (project: Project) => void
+  onEdit: (project: Project) => void
+  onDelete: (project: Project) => void
+}) {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "Completado":
         return "bg-green-100 text-green-800"
@@ -114,7 +141,7 @@ function ProjectCard({ project, onView, onEdit, onDelete }) {
     }
   }
 
-  const getPriorityColor = (priority) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "Alta":
         return "destructive"
@@ -191,7 +218,7 @@ function ProjectCard({ project, onView, onEdit, onDelete }) {
   )
 }
 
-function ProjectDetails({ project, onClose }) {
+function ProjectDetails({ project, onClose }: { project: Project | null; onClose: () => void }) {
   if (!project) return null
 
   return (
@@ -260,25 +287,25 @@ function ProjectDetails({ project, onClose }) {
 }
 
 export default function PortfolioPage() {
-  const [selectedProject, setSelectedProject] = useState(null)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [showDetails, setShowDetails] = useState(false)
   const [showForm, setShowForm] = useState(false)
-  const [editingProject, setEditingProject] = useState(null)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [filterDepartment, setFilterDepartment] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
 
-  const handleView = (project) => {
+  const handleView = (project: Project) => {
     setSelectedProject(project)
     setShowDetails(true)
   }
 
-  const handleEdit = (project) => {
+  const handleEdit = (project: Project) => {
     setEditingProject(project)
     setShowForm(true)
   }
 
-  const handleDelete = (project) => {
+  const handleDelete = (project: Project) => {
     console.log("Eliminar proyecto:", project)
   }
 
