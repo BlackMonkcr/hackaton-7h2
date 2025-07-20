@@ -5,29 +5,31 @@ import { Header_Students } from "~/components/header_students"
 import { PersonalTab } from "~/components/personal-tab"
 import { GroupProjectsTab } from "~/components/group-projects-tab"
 import { PersonalScheduleTab } from "~/components/personal-schedule-tab"
+import { AuthGuard } from "~/components/auth-guard"
 
 export default function StudentPlanner() {
   const [activeTab, setActiveTab] = useState<"personal" | "group" | "schedule">("personal")
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header_Students />
+    <AuthGuard>
+      <div className="min-h-screen bg-background">
+        <Header_Students />
 
-      {/* Navigation Tabs */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4">
-          <div className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab("personal")}
-              className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === "personal"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <span>🧍‍♂️</span>
-              <span>Personal</span>
-            </button>
+        {/* Navigation Tabs */}
+        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4">
+            <div className="flex space-x-8">
+              <button
+                onClick={() => setActiveTab("personal")}
+                className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "personal"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>🧍‍♂️</span>
+                <span>Personal</span>
+              </button>
             <button
               onClick={() => setActiveTab("group")}
               className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
@@ -61,5 +63,6 @@ export default function StudentPlanner() {
         {activeTab === "schedule" && <PersonalScheduleTab />}
       </main>
     </div>
+    </AuthGuard>
   )
 }
