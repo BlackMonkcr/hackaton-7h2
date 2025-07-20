@@ -265,14 +265,14 @@ def distribute_tasks_with_ai(prompt_content):
 
         # Parse response
         response_text = completion.choices[0].message.content
-        
+
         # Try to parse JSON from response
         try:
             # Find JSON in response if there's additional text
             json_start = response_text.find('{')
             json_end = response_text.rfind('}') + 1
             json_text = response_text[json_start:json_end]
-            
+
             return json.loads(json_text)
         except json.JSONDecodeError:
             return {
