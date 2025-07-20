@@ -147,7 +147,21 @@ const rolesData = [
 ]
 
 
-function UserForm({ user, onSave, onCancel }) {
+type UserFormProps = {
+  user?: {
+    name?: string
+    email?: string
+    role?: string
+    department?: string
+    phone?: string
+    location?: string
+    status?: string
+  }
+  onSave: (formData: any) => void
+  onCancel: () => void
+}
+
+function UserForm({ user, onSave, onCancel }: UserFormProps) {
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -261,7 +275,19 @@ function UserForm({ user, onSave, onCancel }) {
   )
 }
 
-function RoleCard({ role, onEdit, onDelete }) {
+type RoleCardProps = {
+  role: {
+    id: number
+    name: string
+    description: string
+    permissions: string[]
+    userCount: number
+  }
+  onEdit: (role: any) => void
+  onDelete: (role: any) => void
+}
+
+function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
   return (
     <Card>
       <CardHeader>
@@ -303,25 +329,47 @@ function RoleCard({ role, onEdit, onDelete }) {
   )
 }
 
+interface IUser {
+  id: number
+  name: string
+  email: string
+  role: string
+  department: string
+  permissions: string[]
+  status: string
+  lastLogin: string
+  avatar: string
+  phone: string
+  location: string
+}
+
 export default function UsersPage() {
   const [activeTab, setActiveTab] = useState("users")
   const [showUserForm, setShowUserForm] = useState(false)
-  const [editingUser, setEditingUser] = useState(null)
+  const [editingUser, setEditingUser] = useState<IUser | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterRole, setFilterRole] = useState("all")
   const [filterDepartment, setFilterDepartment] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
 
-  const handleEditUser = (user) => {
+  const handleEditUser = (user: IUser) => {
     setEditingUser(user)
     setShowUserForm(true)
   }
 
-  const handleDeleteUser = (user) => {
+  const handleDeleteUser = (user: IUser) => {
     console.log("Eliminar usuario:", user)
   }
 
-  const handleSaveUser = (formData) => {
+  const handleSaveUser = (formData: {
+    name?: string
+    email?: string
+    role?: string
+    department?: string
+    phone?: string
+    location?: string
+    status?: string
+  }) => {
     console.log("Guardar usuario:", formData)
     setShowUserForm(false)
     setEditingUser(null)
@@ -575,8 +623,8 @@ export default function UsersPage() {
             <DialogTitle>{editingUser ? "Editar Usuario" : "Nuevo Usuario"}</DialogTitle>
             <DialogDescription>Configure los detalles del usuario y asigne roles y permisos.</DialogDescription>
           </DialogHeader>
-          <UserForm user={editingUser} onSave={handleSaveUser} onCancel={() => setShowUserForm(false)} />
-          <DialogFooter>
+          <UserForm user={editingUser ?? undefined} onSave={handleSaveUser} onCancel={() => setShowUserForm(false)} />
+         <DialogFooter>
             <Button variant="outline" onClick={() => setShowUserForm(false)}>
               Cancelar
             </Button>

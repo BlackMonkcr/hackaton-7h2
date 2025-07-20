@@ -89,8 +89,36 @@ const operationsData = [
   },
 ]
 
-function OperationCard({ operation, onView, onEdit, onApprove }) {
-  const getStatusColor = (status) => {
+type Operation = {
+  id: number
+  title: string
+  type: string
+  priority: string
+  status: string
+  department: string
+  location: string
+  assignedTo: string
+  requestedBy: string
+  createdDate: string
+  dueDate: string
+  estimatedHours: number
+  description: string
+  approvalLevel: string
+  materials: string[]
+}
+
+function OperationCard({
+  operation,
+  onView,
+  onEdit,
+  onApprove,
+}: {
+  operation: Operation
+  onView: (operation: Operation) => void
+  onEdit: (operation: Operation) => void
+  onApprove: (operation: Operation) => void
+}) {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "Completado":
         return "bg-green-100 text-green-800"
@@ -107,7 +135,7 @@ function OperationCard({ operation, onView, onEdit, onApprove }) {
     }
   }
 
-  const getPriorityColor = (priority) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "Alta":
         return "destructive"
@@ -120,7 +148,7 @@ function OperationCard({ operation, onView, onEdit, onApprove }) {
     }
   }
 
-  const getTypeIcon = (type) => {
+  const getTypeIcon = (type: string) => {
     switch (type) {
       case "Mantenimiento":
         return <Settings className="h-4 w-4" />
@@ -200,7 +228,15 @@ function OperationCard({ operation, onView, onEdit, onApprove }) {
   )
 }
 
-function OperationForm({ operation, onSave, onCancel }) {
+function OperationForm({
+  operation,
+  onSave,
+  onCancel,
+}: {
+  operation?: Operation
+  onSave: (formData: any) => void
+  onCancel: () => void
+}) {
   const [formData, setFormData] = useState({
     title: operation?.title || "",
     type: operation?.type || "Mantenimiento",
@@ -341,30 +377,30 @@ function OperationForm({ operation, onSave, onCancel }) {
 }
 
 export default function OperationsPage() {
-  const [selectedOperation, setSelectedOperation] = useState(null)
+  const [selectedOperation, setSelectedOperation] = useState<Operation | null>(null)
   const [showDetails, setShowDetails] = useState(false)
   const [showForm, setShowForm] = useState(false)
-  const [editingOperation, setEditingOperation] = useState(null)
+  const [editingOperation, setEditingOperation] = useState<Operation | null>(null)
   const [filterType, setFilterType] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterDepartment, setFilterDepartment] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
 
-  const handleView = (operation) => {
+  const handleView = (operation: Operation) => {
     setSelectedOperation(operation)
     setShowDetails(true)
   }
 
-  const handleEdit = (operation) => {
+  const handleEdit = (operation: Operation) => {
     setEditingOperation(operation)
     setShowForm(true)
   }
 
-  const handleApprove = (operation) => {
+  const handleApprove = (operation: Operation) => {
     console.log("Aprobar operación:", operation)
   }
 
-  const handleSave = (formData) => {
+  const handleSave = (formData: any) => {
     console.log("Guardar operación:", formData)
     setShowForm(false)
     setEditingOperation(null)
@@ -586,7 +622,7 @@ export default function OperationsPage() {
             <DialogTitle>{editingOperation ? "Editar Operación" : "Nueva Operación"}</DialogTitle>
             <DialogDescription>Configure los detalles de la operación y asigne recursos necesarios.</DialogDescription>
           </DialogHeader>
-          <OperationForm operation={editingOperation} onSave={handleSave} onCancel={() => setShowForm(false)} />
+          <OperationForm operation={editingOperation ?? undefined} onSave={handleSave} onCancel={() => setShowForm(false)} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowForm(false)}>
               Cancelar
