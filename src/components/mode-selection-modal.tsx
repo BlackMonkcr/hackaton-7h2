@@ -3,8 +3,8 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog"
 import { Button } from "./ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
-
 import { useRouter } from "next/navigation"
+import { useAuth } from "../contexts/auth-context"
 
 interface ModeSelectionModalProps {
   open: boolean
@@ -43,22 +43,42 @@ const modes = [
 ]
 
 export function ModeSelectionModal({ open, onOpenChange }: ModeSelectionModalProps) {
-  const router = useRouter();
+  const router = useRouter()
+  const { isAuthenticated, user } = useAuth()
 
   const handleModeSelect = (modeId: string) => {
-    console.log(`Selected mode: ${modeId}`)
-    router.push(`/modo/${modeId}`)
-    // Aquí puedes agregar la lógica para redirigir o configurar el modo
+    if (!isAuthenticated) {
+      // Si no está autenticado, redirigir al registro con el modo seleccionado
+      router.push(`/register?mode=${modeId}`)
+    } else {
+      // Si está autenticado, ir directamente al dashboard correspondiente
+      router.push(`/modo/${modeId}`)
+    }
     onOpenChange(false)
   }
+
+  const getRecommendedMode = () => {
+    if (!user) return null
+    
+    if (user.university) return "students"
+    if (user.companyName) return "pymes"
+    return "startups"
+  }
+
+  const recommendedMode = getRecommendedMode()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="text-center">
-          <DialogTitle className="text-2xl font-bold mb-2">¿Cómo quieres usar Planner B?</DialogTitle>
+          <DialogTitle className="text-2xl font-bold mb-2">
+            {isAuthenticated ? "¿A dónde quieres ir?" : "¿Cómo quieres usar Planner B?"}
+          </DialogTitle>
           <DialogDescription className="text-base">
-            Selecciona un modo de uso para adaptar la experiencia a tu perfil.
+            {isAuthenticated 
+              ? "Selecciona el modo que mejor se adapte a tu trabajo actual."
+              : "Selecciona un modo de uso para adaptar la experiencia a tu perfil."
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -66,12 +86,21 @@ export function ModeSelectionModal({ open, onOpenChange }: ModeSelectionModalPro
           {modes.map((mode) => (
             <Card
               key={mode.id}
-              className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${mode.color}`}
+              className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${mode.color} ${
+                recommendedMode === mode.id ? 'ring-2 ring-blue-400' : ''
+              }`}
               onClick={() => handleModeSelect(mode.id)}
             >
               <CardHeader className="text-center pb-3">
                 <div className="text-3xl mb-2">{mode.icon}</div>
-                <CardTitle className="text-lg">{mode.title}</CardTitle>
+                <CardTitle className="text-lg">
+                  {mode.title}
+                  {recommendedMode === mode.id && (
+                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      Recomendado
+                    </span>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-center">
                 <CardDescription className="mb-4 text-sm leading-relaxed">{mode.description}</CardDescription>
@@ -84,12 +113,26 @@ export function ModeSelectionModal({ open, onOpenChange }: ModeSelectionModalPro
                     handleModeSelect(mode.id)
                   }}
                 >
-                  Seleccionar
+                  {isAuthenticated ? "Ir al Dashboard" : "Comenzar"}
                 </Button>
               </CardContent>
             </Card>
           ))}
         </div>
+
+        {!isAuthenticated && (
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600 mb-4">
+              ¿Ya tienes una cuenta?
+            </p>
+            <Button variant="ghost" onClick={() => {
+              router.push("/login")
+              onOpenChange(false)
+            }}>
+              Iniciar sesión
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
