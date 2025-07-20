@@ -8,10 +8,10 @@ import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
 import { Badge } from "./ui/badge"
 import { Separator } from "./ui/separator"
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle,
   DialogDescription
 } from "./ui/dialog"
@@ -126,6 +126,7 @@ export function CollaborativeProjects() {
   const [isDistributingTasks, setIsDistributingTasks] = useState<boolean>(false)
   const [distributionResult, setDistributionResult] = useState<TaskDistributionResult | null>(null)
   const [calendarData, setCalendarData] = useState<CalendarEvent[] | null>(null)
+  const [isCreatingEvents, setIsCreatingEvents] = useState<boolean>(false)
   const [distributionConfig, setDistributionConfig] = useState({
     workingHoursStart: "09:00",
     workingHoursEnd: "17:00",
@@ -256,6 +257,16 @@ export function CollaborativeProjects() {
     { enabled: false, retry: false }
   )
 
+  // Query para crear eventos (se habilitará dinámicamente)
+  const createEventMutation = api.calendar.createEvent.useMutation({
+    onSuccess: (data) => {
+      console.log("✅ Evento creado:", data)
+    },
+    onError: (error) => {
+      console.error("❌ Error creando evento:", error)
+    },
+  })
+
   const createProjectMutation = api.project.createFromAI.useMutation({
     onSuccess: (data) => {
       console.log("✅ Proyecto creado:", data)
@@ -336,7 +347,7 @@ export function CollaborativeProjects() {
     try {
       // 1. Obtener eventos del calendario
       const calendarEvents = await handleGetCalendarData()
-      
+
       // 2. Preparar datos para la IA
       const projectData: TaskDistributionPromptData = {
         proyecto: displayProjectDetails.name,
@@ -363,7 +374,7 @@ export function CollaborativeProjects() {
 
       // 3. Crear el prompt mejorado para la IA usando la utilidad
       const prompt = createTaskDistributionPrompt(projectData, calendarEventsFormatted, distributionConfig)
-      
+
       console.log("🤖 Enviando prompt a IA:", prompt)
 
       // TODO: Integración con Azure OpenAI
@@ -428,22 +439,140 @@ export function CollaborativeProjects() {
       return
     }
 
-    try {
-      for (const task of distributionResult.scheduledTasks) {
-        // Aquí iría la llamada real a la API para crear el evento
-        console.log("Creando evento para tarea:", task.taskTitle)
-        
-        // Mock de creación de evento
-        await new Promise(resolve => setTimeout(resolve, 500))
+    setIsCreatingEvents(true)
+
+    // Validar que las fechas sean válidas antes de proceder
+    for (const task of distributionResult.scheduledTasks) {
+      const startDate = new Date(task.startDateTime)
+      const endDate = new Date(task.endDateTime)
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        alert(`❌ Error: Fechas inválidas en la tarea "${task.taskTitle}"`)
+        console.error("Fechas inválidas:", { startDateTime: task.startDateTime, endDateTime: task.endDateTime })
+        setIsCreatingEvents(false)
+        return
       }
-      
-      alert(`✅ ${distributionResult.scheduledTasks.length} eventos creados exitosamente en Google Calendar`)
-      setDistributionResult(null)
-      setShowTaskDistribution(false)
-      
+
+      if (startDate >= endDate) {
+        alert(`❌ Error: La fecha de inicio debe ser anterior a la fecha de fin en la tarea "${task.taskTitle}"`)
+        console.error("Fechas incorrectas:", { start: startDate, end: endDate })
+        setIsCreatingEvents(false)
+        return
+      }
+    }
+
+    console.log(`🚀 Iniciando creación de ${distributionResult.scheduledTasks.length} eventos...`)
+
+    try {
+      let createdCount = 0
+      let errorCount = 0
+
+      for (const task of distributionResult.scheduledTasks) {
+        try {
+          console.log("📅 Creando evento para tarea:", task.taskTitle)
+          console.log("⏰ Horario:", {
+            start: new Date(task.startDateTime).toLocaleString('es-ES'),
+            end: new Date(task.endDateTime).toLocaleString('es-ES')
+          })
+
+          // Preparar datos del evento
+          const eventData = {
+            summary: `[TAREA] ${task.taskTitle}`,
+            description: `Tarea del proyecto: ${displayProjectDetails?.name || 'Proyecto'}
+
+📋 Prioridad: ${task.priority}
+⏱️ Horas estimadas: ${task.estimatedHours}h
+👤 Asignado a: ${task.assignedTo}
+
+🤖 Generado automáticamente por la distribución inteligente de tareas.`,
+            startDateTime: task.startDateTime,
+            endDateTime: task.endDateTime,
+            timezone: "America/Lima",
+            colorId: getPriorityColorId(task.priority),
+          }
+
+          console.log("📤 Enviando datos del evento:", eventData)
+
+          // Usar la mutation de TRPC para crear el evento
+          const result = await createEventMutation.mutateAsync({
+            token,
+            calendarId: "primary",
+            event: eventData
+          })
+
+          console.log("✅ Evento creado exitosamente:", result)
+          createdCount++
+
+          // Pequeña pausa entre creaciones para evitar rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500))
+
+        } catch (taskError) {
+          console.error("❌ Error creando evento para tarea:", task.taskTitle, taskError)
+
+          // Mostrar detalles del error
+          if (taskError instanceof Error) {
+            console.error("Error details:", taskError.message)
+          }
+
+          errorCount++
+        }
+      }
+
+      // Mostrar resultado final
+      if (createdCount > 0 && errorCount === 0) {
+        alert(`✅ ${createdCount} eventos creados exitosamente en Google Calendar!
+
+Los eventos aparecerán en tu calendario principal con el prefijo [TAREA] y colores según prioridad:
+🔴 Urgente (Rojo)
+🔵 Alta (Azul)
+🟢 Media (Verde)
+⚪ Baja (Gris)
+
+Actualiza tu Google Calendar para verlos.`)
+      } else if (createdCount > 0 && errorCount > 0) {
+        alert(`⚠️ ${createdCount} eventos creados, ${errorCount} fallaron.
+
+Los eventos exitosos ya están en tu calendario. Revisa la consola para más detalles sobre los errores.`)
+      } else {
+        alert(`❌ No se pudieron crear los eventos. Error en todas las tareas.
+
+Posibles causas:
+• Problemas de conexión con Google Calendar
+• Token de autenticación expirado
+• Permisos insuficientes
+
+Intenta reconectar tu cuenta de Google Calendar.`)
+        return
+      }
+
+      // Limpiar estado solo si se creó al menos un evento
+      if (createdCount > 0) {
+        setDistributionResult(null)
+        // Opcional: refrescar el calendario para mostrar los nuevos eventos
+        refetchCalendar()
+      }
+
     } catch (error) {
-      console.error("❌ Error creando eventos:", error)
-      alert("Error al crear eventos en Google Calendar")
+      console.error("❌ Error general creando eventos:", error)
+      alert("Error al crear eventos en Google Calendar. Verifica tu conexión y autenticación.")
+    } finally {
+      setIsCreatingEvents(false)
+    }
+  }
+
+  // Función auxiliar para obtener color según prioridad
+  const getPriorityColorId = (priority: string): string => {
+    switch (priority.toUpperCase()) {
+      case 'URGENT':
+        return '11' // Rojo
+      case 'HIGH':
+        return '9'  // Azul
+      case 'MEDIUM':
+        return '2'  // Verde
+      case 'LOW':
+        return '8'  // Gris
+      default:
+        return '1'  // Azul por defecto
     }
   }
 
@@ -943,8 +1072,8 @@ export function CollaborativeProjects() {
                       <div className="flex items-center space-x-2 text-sm text-gray-600">
                         <AlertCircle className="h-4 w-4" />
                         <span>
-                          {isAuthenticated 
-                            ? "Conectado a Google Calendar" 
+                          {isAuthenticated
+                            ? "Conectado a Google Calendar"
                             : "Requiere autenticación con Google Calendar"
                           }
                         </span>
@@ -991,7 +1120,7 @@ export function CollaborativeProjects() {
                             {distributionResult.scheduledTasks.length} tareas programadas
                           </Badge>
                         </div>
-                        
+
                         <div className="space-y-3 mb-4">
                           {distributionResult.scheduledTasks.map((task, index) => (
                             <div key={task.taskId} className="p-3 bg-white border border-green-200 rounded">
@@ -999,7 +1128,7 @@ export function CollaborativeProjects() {
                                 <div>
                                   <h5 className="font-medium text-gray-900">{task.taskTitle}</h5>
                                   <p className="text-sm text-gray-600">
-                                    {new Date(task.startDateTime).toLocaleDateString('es-ES')} - 
+                                    {new Date(task.startDateTime).toLocaleDateString('es-ES')} -
                                     {new Date(task.startDateTime).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})} a {' '}
                                     {new Date(task.endDateTime).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}
                                   </p>
@@ -1043,9 +1172,19 @@ export function CollaborativeProjects() {
                             onClick={handleCreateCalendarEvents}
                             className="bg-green-600 hover:bg-green-700"
                             size="sm"
+                            disabled={isCreatingEvents}
                           >
-                            <CalendarPlus className="h-4 w-4 mr-2" />
-                            Crear Eventos en Calendar
+                            {isCreatingEvents ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                Creando Eventos...
+                              </>
+                            ) : (
+                              <>
+                                <CalendarPlus className="h-4 w-4 mr-2" />
+                                Crear Eventos en Calendar
+                              </>
+                            )}
                           </Button>
                         </div>
                       </div>
